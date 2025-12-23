@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import geopandas as gpd
+from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry.polygon import orient
 import shapely
 import pydeck as pdk
 
@@ -22,9 +24,9 @@ def carregar_dados_geo():
         if not geometry.is_valid:
             geometry = geometry.buffer(0)
         if isinstance(
-            geometry, (shapely.geometry.Polygon, shapely.geometry.MultiPolygon)
+            geometry, (Polygon, MultiPolygon)
         ):
-            geometry = shapely.geometry.polygon.orient(geometry, sign=1.0)
+            geometry = orient(geometry, sign=1.0)
         return geometry
 
     gdf_geo["geometry"] = gdf_geo["geometry"].apply(fix_and_orient_geometry)
