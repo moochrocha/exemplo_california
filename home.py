@@ -32,16 +32,18 @@ def carregar_dados_geo():
     gdf_geo["geometry"] = gdf_geo["geometry"].apply(fix_and_orient_geometry)
 
     def get_polygon_coordinates(geometry):
-        return (
-            [[[x,y] for x, y in
-              geometry.exterior.coords]]
-              if isinstance(geometry, shapely.geometry.Polygon)
-              else [
-                  [[x,y] for x, y in polygon.exterior.coords]
-                  for polygon in geometry.geoms
-              ]
-        )
+        if isinstance(geometry, Polygon):
+            return [[[x, y] for x, y in geometry.exterior.coords]]
+        elif isinstance(geometry, MultiPolygon):
+            return [
+                [[x, y] for x, y in polygon.exterior.coords]
+                for polygon in geometry.geoms
+            ]
+        else:
+            return None
+
     gdf_geo["geometry"] = gdf_geo["geometry"].apply(get_polygon_coordinates)
+    gdf_geo = pd.DataFrame(gdf_geo)
     return gdf_geo
 
 @st.cache_resource
@@ -117,12 +119,22 @@ with coluna1:
 
     if botao_previsao:
         preco = modelo.predict(df_entrada_modelo)
-        st.metric(label="Preço previsto: U$", value=f"{preco[0][0]:.2f}")
+        valor_previsto = float(preco[0])
+        st.metric(
+            label="Preço previsto: U$", 
+            value=f"{valor_previsto:.2f}")
 
 with coluna2:
+
+    latitude_default = float(gdf_geo.iloc[0]["latitude"])
+    longitude_default = float(gdf_geo.iloc[0]["longitude"])
+
+    lat = latitude[0] if "latitude" in locals() else latitude_default
+    lon = longitude[0] if "longitude" in locals() else longitude_default
+
     view_state = pdk.ViewState(
-        latitude=float(latitude[0]),
-        longitude=float(longitude[0]),
+        latitude=float(lat),
+        longitude=float(lon),
         zoom=5,
         min_zoom=5,
         max_zoom=15
@@ -143,8 +155,11 @@ with coluna2:
         "html": "<b>Condado:</b> {name}",
         "style": {"backgroundColor": "steelblue", "color":"white", "fontsize":"10px"}
     }
-    
-    condado_selecionado = gdf_geo.query("name == @selecionar_condado")
+
+    if "selecionar_condado" not in locals():
+        condado_selecionado = gdf_geo.iloc[[0]]
+    else:
+        condado_selecionado = gdf_geo.query("name == @selecionar_condado")
 
     highlight_layer = pdk.Layer(
         "PolygonLayer",
