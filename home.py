@@ -48,9 +48,20 @@ def carregar_dados_geo():
 def carregar_modelo():
     return load(MODELO_FINAL)
 
-df = carregar_dados_limpos()
-gdf_geo = carregar_dados_geo()
-modelo = carregar_modelo()
+if "dados_carregados" not in st.session_state:
+    st.session_state["dados_carregados"] = True
+    st.session_state["df"] = carregar_dados_limpos()
+    st.session_state["gdf_geo"] = carregar_dados_geo()
+    st.session_state["modelo"] = carregar_modelo()
+
+df = st.session_state["df"]
+gdf_geo = st.session_state["gdf_geo"]
+modelo = st.session_state["modelo"]
+
+
+# df = carregar_dados_limpos()
+# gdf_geo = carregar_dados_geo()
+# modelo = carregar_modelo()
 
 st.title("Previsão de preços de imóveis")
 
